@@ -1,0 +1,2019 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>C++ 视频转 GIF 工具</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 60px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f8f9ff;
+            margin-bottom: 30px;
+        }
+
+        .upload-area:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #764ba2;
+            background: #e8eaff;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .upload-hint {
+            color: #999;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-info {
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .file-info.show {
+            display: block;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #2e7d32;
+            word-break: break-all;
+        }
+
+        .file-size {
+            color: #666;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        /* ===== 批量文件列表 ===== */
+        .file-list {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .file-list.show {
+            display: block;
+        }
+
+        .file-list-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 15px;
+        }
+
+        .file-list-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: #f8f9ff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+
+        .file-list-item:hover {
+            background: #f0f2ff;
+        }
+
+        .file-list-item-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .file-list-item-name {
+            font-weight: 600;
+            color: #333;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-list-item-size {
+            color: #999;
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .file-list-item-remove {
+            background: none;
+            border: none;
+            color: #e53935;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+            flex-shrink: 0;
+            margin-left: 10px;
+        }
+
+        .file-list-item-remove:hover {
+            background: #ffebee;
+        }
+
+        /* ===== 视频预览区域 ===== */
+        .video-section {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .video-section.show {
+            display: block;
+        }
+
+        .video-wrapper {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #000;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .video-wrapper video {
+            display: block;
+            width: 100%;
+            max-height: 400px;
+            object-fit: contain;
+            pointer-events: none;
+        }
+
+        /* ===== 双滑块范围选择器 ===== */
+        .range-slider-container {
+            display: none;
+            background: #f8f9ff;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+
+        .range-slider-container.show {
+            display: block;
+        }
+
+        .range-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .range-label {
+            color: #333;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .range-time-display {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+        }
+
+        .time-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            font-variant-numeric: tabular-nums;
+            min-width: 70px;
+            text-align: center;
+        }
+
+        .time-badge.end {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+
+        .time-separator {
+            color: #999;
+            font-size: 14px;
+        }
+
+        .duration-info {
+            color: #999;
+            font-size: 13px;
+            margin-top: 4px;
+        }
+
+        /* 滑块轨道 */
+        .slider-track-wrapper {
+            position: relative;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        .slider-track {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+        }
+
+        .slider-range {
+            position: absolute;
+            height: 8px;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        /* 滑块手柄 */
+        .slider-thumb {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            z-index: 2;
+            transition: box-shadow 0.2s, transform 0.15s;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .slider-thumb:hover {
+            box-shadow: 0 2px 16px rgba(102, 126, 234, 0.5);
+            transform: translate(-50%, -50%) scale(1.15);
+        }
+
+        .slider-thumb.active {
+            cursor: grabbing;
+            border-color: #764ba2;
+            box-shadow: 0 2px 20px rgba(118, 75, 162, 0.5);
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .slider-thumb.end-thumb {
+            border-color: #f5576c;
+            box-shadow: 0 2px 8px rgba(245, 87, 108, 0.3);
+        }
+
+        .slider-thumb.end-thumb:hover {
+            box-shadow: 0 2px 16px rgba(245, 87, 108, 0.5);
+        }
+
+        .slider-thumb.end-thumb.active {
+            border-color: #f093fb;
+            box-shadow: 0 2px 20px rgba(240, 147, 251, 0.5);
+        }
+
+        /* 时间刻度 */
+        .slider-ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 2px;
+            margin-top: 6px;
+        }
+
+        .slider-ticks span {
+            font-size: 11px;
+            color: #aaa;
+            transform: translateX(-50%);
+        }
+
+        /* 帧预览提示 */
+        .frame-preview-hint {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-top: 24px;
+        }
+
+        /* ===== 高级设置面板 ===== */
+        .advanced-settings {
+            background: #f5f6fa;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid #e8e8e8;
+        }
+
+        .advanced-settings-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            cursor: pointer;
+            user-select: none;
+            transition: background 0.2s;
+        }
+
+        .advanced-settings-header:hover {
+            background: #ecedf5;
+        }
+
+        .advanced-settings-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 16px;
+        }
+
+        .advanced-settings-arrow {
+            font-size: 12px;
+            color: #999;
+            transition: transform 0.3s;
+        }
+
+        .advanced-settings-arrow.open {
+            transform: rotate(180deg);
+        }
+
+        .advanced-settings-body {
+            display: none;
+            padding: 0 20px 20px;
+        }
+
+        .advanced-settings-body.show {
+            display: block;
+        }
+
+        /* 设置项行 */
+        .setting-row {
+            margin-bottom: 18px;
+        }
+
+        .setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-label {
+            font-size: 14px;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        /* 按钮组 pill 样式 */
+        .pill-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pill-btn {
+            padding: 8px 18px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            background: white;
+            color: #555;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .pill-btn:hover {
+            border-color: #667eea;
+            color: #667eea;
+        }
+
+        .pill-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-color: transparent;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* 下拉选择 */
+        .setting-select {
+            padding: 8px 14px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            background: white;
+            color: #333;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+            transition: border-color 0.2s;
+            min-width: 160px;
+        }
+
+        .setting-select:focus {
+            border-color: #667eea;
+        }
+
+        /* 裁剪输入框 */
+        .crop-inputs {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .crop-input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .crop-input-group label {
+            font-size: 12px;
+            color: #888;
+        }
+
+        .crop-input-group input {
+            width: 80px;
+            padding: 8px 10px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .crop-input-group input:focus {
+            border-color: #667eea;
+        }
+
+        /* 开关 checkbox */
+        .switch-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #ccc;
+            border-radius: 24px;
+            transition: background 0.3s;
+        }
+
+        .switch-slider::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            left: 3px;
+            bottom: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .switch input:checked + .switch-slider {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .switch input:checked + .switch-slider::before {
+            transform: translateX(20px);
+        }
+
+        .switch-label {
+            font-size: 14px;
+            color: #555;
+        }
+
+        /* 预估大小 */
+        .estimate-info {
+            margin-top: 16px;
+            padding: 12px 16px;
+            background: #e8f5e9;
+            border: 1px solid #c8e6c9;
+            border-radius: 10px;
+            font-size: 14px;
+            color: #2e7d32;
+            text-align: center;
+            display: none;
+        }
+
+        .estimate-info.show {
+            display: block;
+        }
+
+        /* ===== 转换按钮 ===== */
+        .convert-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0;
+        }
+
+        .convert-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .convert-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ===== 进度 & 结果 ===== */
+        .progress-area {
+            display: none;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .progress-area.show {
+            display: block;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-text {
+            color: #666;
+            font-size: 18px;
+        }
+
+        .result {
+            display: none;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .result.show {
+            display: block;
+        }
+
+        .result h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        .result img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .download-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+
+        .error {
+            background: #ffebee;
+            border: 1px solid #ffcdd2;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #c62828;
+            display: none;
+        }
+
+        .error.show {
+            display: block;
+        }
+
+        /* ===== 批量结果展示 ===== */
+        .batch-results {
+            display: none;
+            margin-bottom: 30px;
+        }
+
+        .batch-results.show {
+            display: block;
+        }
+
+        .batch-results h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        .batch-result-item {
+            text-align: center;
+            margin-bottom: 24px;
+            padding: 20px;
+            background: #f8f9ff;
+            border-radius: 12px;
+            border: 1px solid #e8e8e8;
+        }
+
+        .batch-result-item img {
+            max-width: 100%;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            margin-bottom: 12px;
+        }
+
+        .batch-result-item .result-filename {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        /* ===== 历史记录 ===== */
+        .history-section {
+            margin-top: 40px;
+            padding-top: 30px;
+            border-top: 2px solid #eee;
+        }
+
+        .history-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .history-card {
+            background: #f8f9ff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .history-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+        }
+
+        .history-card-img {
+            width: 100%;
+            aspect-ratio: 16/9;
+            object-fit: cover;
+            display: block;
+            background: #000;
+        }
+
+        .history-card-body {
+            padding: 12px;
+        }
+
+        .history-card-name {
+            font-weight: 600;
+            color: #333;
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            margin-bottom: 4px;
+        }
+
+        .history-card-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 10px;
+        }
+
+        .history-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .history-card-actions a,
+        .history-card-actions button {
+            flex: 1;
+            padding: 6px 0;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: center;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: none;
+        }
+
+        .history-download-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .history-download-btn:hover {
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .history-delete-btn {
+            background: #ffebee;
+            color: #e53935;
+        }
+
+        .history-delete-btn:hover {
+            background: #ffcdd2;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: #999;
+            font-size: 14px;
+            padding: 30px 0;
+        }
+
+        /* ===== 响应式 ===== */
+
+        /* 平板 (768px 以下) */
+        @media (max-width: 768px) {
+            body {
+                padding: 12px;
+            }
+
+            .container {
+                padding: 24px;
+                border-radius: 16px;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+
+            .subtitle {
+                font-size: 13px;
+            }
+
+            .upload-area {
+                padding: 36px 16px;
+            }
+
+            .upload-icon {
+                font-size: 48px;
+            }
+
+            .upload-text {
+                font-size: 16px;
+            }
+
+            .range-slider-container {
+                padding: 20px 16px;
+            }
+
+            .range-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+
+            .range-time-display {
+                gap: 10px;
+            }
+
+            .time-badge {
+                padding: 5px 10px;
+                font-size: 13px;
+                min-width: 60px;
+            }
+
+            .slider-track-wrapper {
+                height: 36px;
+            }
+
+            .slider-thumb {
+                width: 20px;
+                height: 20px;
+                border-width: 2px;
+            }
+
+            .slider-ticks {
+                display: none; /* 小屏幕隐藏刻度，节省空间 */
+            }
+
+            .frame-preview-hint {
+                font-size: 12px;
+                margin-top: 16px;
+            }
+
+            .advanced-toggle {
+                padding: 12px 14px;
+                font-size: 14px;
+            }
+
+            .advanced-panel {
+                padding: 16px;
+            }
+
+            .setting-row {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .setting-label {
+                min-width: auto;
+                font-size: 14px;
+            }
+
+            .pill-group {
+                gap: 6px;
+                flex-wrap: wrap;
+            }
+
+            .pill-btn {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+
+            .crop-inputs {
+                gap: 8px;
+            }
+
+            .crop-input-group input {
+                width: 60px;
+                padding: 6px 8px;
+                font-size: 13px;
+            }
+
+            .convert-btn {
+                padding: 14px;
+                font-size: 18px;
+            }
+
+            .history-section {
+                padding: 20px 16px;
+            }
+
+            .history-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .history-card {
+                padding: 12px;
+            }
+
+            .history-thumb {
+                height: 120px;
+            }
+
+            .result img {
+                max-height: 250px;
+            }
+        }
+
+        /* 手机小屏 (480px 以下) */
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .container {
+                padding: 16px;
+                border-radius: 12px;
+            }
+
+            h1 {
+                font-size: 22px;
+            }
+
+            .upload-area {
+                padding: 28px 12px;
+            }
+
+            .upload-icon {
+                font-size: 40px;
+            }
+
+            .upload-text {
+                font-size: 15px;
+            }
+
+            .upload-hint {
+                font-size: 12px;
+            }
+
+            .range-slider-container {
+                padding: 16px 12px;
+            }
+
+            .time-badge {
+                padding: 4px 8px;
+                font-size: 12px;
+                min-width: 52px;
+            }
+
+            .slider-track {
+                height: 6px;
+            }
+
+            .slider-range {
+                height: 6px;
+            }
+
+            .slider-track-wrapper {
+                height: 32px;
+            }
+
+            .slider-thumb {
+                width: 18px;
+                height: 18px;
+            }
+
+            .advanced-panel {
+                padding: 12px;
+            }
+
+            .setting-row {
+                gap: 8px;
+            }
+
+            .pill-btn {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+
+            select {
+                padding: 6px 10px;
+                font-size: 13px;
+            }
+
+            .crop-input-group input {
+                width: 52px;
+                padding: 5px 6px;
+                font-size: 12px;
+            }
+
+            .convert-btn {
+                padding: 12px;
+                font-size: 16px;
+            }
+
+            .download-btn {
+                padding: 12px 30px;
+                font-size: 16px;
+            }
+
+            .history-section h3 {
+                font-size: 18px;
+            }
+
+            .history-grid {
+                gap: 10px;
+            }
+
+            .history-card {
+                padding: 10px;
+            }
+
+            .history-thumb {
+                height: 100px;
+            }
+
+            .history-name {
+                font-size: 13px;
+            }
+
+            .history-meta {
+                font-size: 11px;
+            }
+
+            .history-actions {
+                gap: 6px;
+            }
+
+            .history-actions button {
+                padding: 5px 10px;
+                font-size: 12px;
+            }
+        }
+
+        /* 超小屏 (360px 以下) */
+        @media (max-width: 360px) {
+            .container {
+                padding: 12px;
+            }
+
+            h1 {
+                font-size: 20px;
+            }
+
+            .range-time-display {
+                flex-wrap: wrap;
+            }
+
+            .pill-group {
+                gap: 4px;
+            }
+
+            .pill-btn {
+                padding: 4px 8px;
+                font-size: 11px;
+            }
+
+            .crop-inputs {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>C++ 视频转 GIF 工具</h1>
+        <p class="subtitle">基于 FFmpeg + C++ 后端技术</p>
+
+        <div class="error" id="error"></div>
+
+        <div class="upload-area" id="uploadArea">
+            <div class="upload-icon">📹</div>
+            <div class="upload-text">点击或拖拽视频文件到这里</div>
+            <div class="upload-hint">支持 MP4, AVI, MOV, MKV 等格式，可多选</div>
+            <input type="file" id="fileInput" accept="video/*" multiple>
+        </div>
+
+        <!-- 批量文件列表 -->
+        <div class="file-list" id="fileList">
+            <div class="file-list-title">已选择的文件 (<span id="fileCount">0</span>)</div>
+            <div id="fileListItems"></div>
+        </div>
+
+        <div class="file-info" id="fileInfo">
+            <div class="file-name" id="fileName"></div>
+            <div class="file-size" id="fileSize"></div>
+        </div>
+
+        <!-- 视频预览 -->
+        <div class="video-section" id="videoSection">
+            <div class="video-wrapper">
+                <video id="video" preload="auto"></video>
+            </div>
+        </div>
+
+        <!-- 双滑块范围选择器 -->
+        <div class="range-slider-container" id="rangeSlider">
+            <div class="range-header">
+                <span class="range-label">截取时间范围</span>
+                <div class="range-time-display">
+                    <span class="time-badge" id="startBadge">00:00.0</span>
+                    <span class="time-separator">→</span>
+                    <span class="time-badge end" id="endBadge">00:05.0</span>
+                </div>
+            </div>
+            <div class="duration-info" id="durationInfo"></div>
+
+            <div style="margin-top: 20px;">
+                <div class="slider-track-wrapper" id="sliderTrackWrapper">
+                    <div class="slider-track"></div>
+                    <div class="slider-range" id="sliderRange"></div>
+                    <div class="slider-thumb" id="thumbStart"></div>
+                    <div class="slider-thumb end-thumb" id="thumbEnd"></div>
+                </div>
+                <div class="slider-ticks" id="sliderTicks"></div>
+            </div>
+
+            <div class="frame-preview-hint">拖动滑块可实时预览视频帧</div>
+        </div>
+
+        <!-- 高级设置面板 -->
+        <div class="advanced-settings" id="advancedSettings">
+            <div class="advanced-settings-header" id="advancedSettingsHeader">
+                <span class="advanced-settings-title">高级设置</span>
+                <span class="advanced-settings-arrow" id="advancedSettingsArrow">▼</span>
+            </div>
+            <div class="advanced-settings-body" id="advancedSettingsBody">
+
+                <!-- 画质调节 -->
+                <div class="setting-row">
+                    <div class="setting-label">画质调节</div>
+                    <div class="pill-group" id="qualityGroup">
+                        <button class="pill-btn" data-value="low">低画质 (64色)</button>
+                        <button class="pill-btn active" data-value="medium">中画质 (128色)</button>
+                        <button class="pill-btn" data-value="high">高画质 (256色)</button>
+                    </div>
+                </div>
+
+                <!-- 帧率控制 -->
+                <div class="setting-row">
+                    <div class="setting-label">帧率控制</div>
+                    <select class="setting-select" id="fpsSelect">
+                        <option value="5">5 FPS</option>
+                        <option value="10" selected>10 FPS</option>
+                        <option value="15">15 FPS</option>
+                        <option value="20">20 FPS</option>
+                        <option value="25">25 FPS</option>
+                    </select>
+                </div>
+
+                <!-- 输出宽度 -->
+                <div class="setting-row">
+                    <div class="setting-label">输出宽度</div>
+                    <select class="setting-select" id="widthSelect">
+                        <option value="320">320px</option>
+                        <option value="480" selected>480px</option>
+                        <option value="640">640px</option>
+                        <option value="original">原始宽度</option>
+                    </select>
+                </div>
+
+                <!-- 播放速度 -->
+                <div class="setting-row">
+                    <div class="setting-label">播放速度</div>
+                    <div class="pill-group" id="speedGroup">
+                        <button class="pill-btn" data-value="0.5">0.5x</button>
+                        <button class="pill-btn active" data-value="1">1x</button>
+                        <button class="pill-btn" data-value="1.5">1.5x</button>
+                        <button class="pill-btn" data-value="2">2x</button>
+                    </div>
+                </div>
+
+                <!-- 画面裁剪 -->
+                <div class="setting-row">
+                    <div class="setting-label">画面裁剪</div>
+                    <div class="switch-row" style="margin-bottom: 10px;">
+                        <label class="switch">
+                            <input type="checkbox" id="cropToggle">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span class="switch-label">启用裁剪</span>
+                    </div>
+                    <div class="crop-inputs" id="cropInputs" style="opacity: 0.4; pointer-events: none;">
+                        <div class="crop-input-group">
+                            <label>宽度</label>
+                            <input type="number" id="cropW" value="640" min="1">
+                        </div>
+                        <div class="crop-input-group">
+                            <label>高度</label>
+                            <input type="number" id="cropH" value="360" min="1">
+                        </div>
+                        <div class="crop-input-group">
+                            <label>X偏移</label>
+                            <input type="number" id="cropX" value="0" min="0">
+                        </div>
+                        <div class="crop-input-group">
+                            <label>Y偏移</label>
+                            <input type="number" id="cropY" value="0" min="0">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 倒放 -->
+                <div class="setting-row">
+                    <div class="setting-label">倒放</div>
+                    <div class="switch-row">
+                        <label class="switch">
+                            <input type="checkbox" id="reverseToggle">
+                            <span class="switch-slider"></span>
+                        </label>
+                        <span class="switch-label">倒放（反向播放）</span>
+                    </div>
+                </div>
+
+                <!-- 预估文件大小 -->
+                <div class="estimate-info" id="estimateInfo">
+                    预估输出大小: <span id="estimateSize">计算中...</span>
+                </div>
+            </div>
+        </div>
+
+        <button class="convert-btn" id="convertBtn" style="display: none;">开始转换</button>
+
+        <div class="progress-area" id="progressArea">
+            <div class="spinner"></div>
+            <div class="progress-text" id="progressText">正在转换，请稍候...</div>
+        </div>
+
+        <!-- 单个结果 -->
+        <div class="result" id="result">
+            <h3>转换完成！</h3>
+            <img id="gifPreview" alt="生成的 GIF">
+            <br>
+            <a id="downloadLink" class="download-btn" download>下载 GIF</a>
+        </div>
+
+        <!-- 批量结果 -->
+        <div class="batch-results" id="batchResults">
+            <h3>批量转换完成！</h3>
+            <div id="batchResultsList"></div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="history-section" id="historySection">
+            <div class="history-title">历史记录</div>
+            <div class="history-grid" id="historyGrid">
+                <div class="history-empty">暂无历史记录</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== DOM 元素 =====
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileNameEl = document.getElementById('fileName');
+        const fileSizeEl = document.getElementById('fileSize');
+        const videoSection = document.getElementById('videoSection');
+        const video = document.getElementById('video');
+        const rangeSlider = document.getElementById('rangeSlider');
+        const sliderTrackWrapper = document.getElementById('sliderTrackWrapper');
+        const sliderRange = document.getElementById('sliderRange');
+        const thumbStart = document.getElementById('thumbStart');
+        const thumbEnd = document.getElementById('thumbEnd');
+        const startBadge = document.getElementById('startBadge');
+        const endBadge = document.getElementById('endBadge');
+        const durationInfo = document.getElementById('durationInfo');
+        const sliderTicks = document.getElementById('sliderTicks');
+        const convertBtn = document.getElementById('convertBtn');
+        const progressArea = document.getElementById('progressArea');
+        const progressText = document.getElementById('progressText');
+        const result = document.getElementById('result');
+        const gifPreview = document.getElementById('gifPreview');
+        const downloadLink = document.getElementById('downloadLink');
+        const errorDiv = document.getElementById('error');
+        const fileListEl = document.getElementById('fileList');
+        const fileListItems = document.getElementById('fileListItems');
+        const fileCountEl = document.getElementById('fileCount');
+        const batchResults = document.getElementById('batchResults');
+        const batchResultsList = document.getElementById('batchResultsList');
+        const historyGrid = document.getElementById('historyGrid');
+
+        // 高级设置 DOM
+        const advancedSettingsHeader = document.getElementById('advancedSettingsHeader');
+        const advancedSettingsArrow = document.getElementById('advancedSettingsArrow');
+        const advancedSettingsBody = document.getElementById('advancedSettingsBody');
+        const qualityGroup = document.getElementById('qualityGroup');
+        const fpsSelect = document.getElementById('fpsSelect');
+        const widthSelect = document.getElementById('widthSelect');
+        const speedGroup = document.getElementById('speedGroup');
+        const cropToggle = document.getElementById('cropToggle');
+        const cropInputs = document.getElementById('cropInputs');
+        const cropW = document.getElementById('cropW');
+        const cropH = document.getElementById('cropH');
+        const cropX = document.getElementById('cropX');
+        const cropY = document.getElementById('cropY');
+        const reverseToggle = document.getElementById('reverseToggle');
+        const estimateInfo = document.getElementById('estimateInfo');
+        const estimateSize = document.getElementById('estimateSize');
+
+        // ===== 状态变量 =====
+        let selectedFiles = [];       // 批量文件列表
+        let selectedFile = null;      // 当前预览的视频文件（第一个）
+        let uploadedFilename = '';
+        const SERVER_URL = 'http://localhost:8080';
+
+        // ===== 高级设置默认值 =====
+        const settings = {
+            quality: 'medium',
+            fps: 10,
+            width: 480,
+            speed: 1,
+            cropEnabled: false,
+            cropW: 640,
+            cropH: 360,
+            cropX: 0,
+            cropY: 0,
+            reverse: false
+        };
+
+        // ===== 滑块状态 =====
+        let videoDuration = 0;
+        let rangeStart = 0;   // 秒
+        let rangeEnd = 5;     // 秒
+        let isDragging = null; // 'start' | 'end' | null
+
+        // ===== 工具函数 =====
+        function formatTime(seconds) {
+            const m = Math.floor(seconds / 60);
+            const s = (seconds % 60).toFixed(1);
+            return String(m).padStart(2, '0') + ':' + s.padStart(4, '0');
+        }
+
+        function formatFileSize(bytes) {
+            const n = Number(bytes);
+            if (!isFinite(n) || n < 0) return '未知';
+            if (n < 1024) return n.toFixed(0) + ' B';
+            if (n < 1024 * 1024) return (n / 1024).toFixed(2) + ' KB';
+            if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(2) + ' MB';
+            return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+        }
+
+        function showError(message) {
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        function hideError() {
+            errorDiv.classList.remove('show');
+        }
+
+        // ===== 滑块渲染 =====
+        function updateSliderUI() {
+            if (videoDuration <= 0) return;
+            const startPercent = (rangeStart / videoDuration) * 100;
+            const endPercent = (rangeEnd / videoDuration) * 100;
+
+            thumbStart.style.left = startPercent + '%';
+            thumbEnd.style.left = endPercent + '%';
+            sliderRange.style.left = startPercent + '%';
+            sliderRange.style.width = (endPercent - startPercent) + '%';
+
+            startBadge.textContent = formatTime(rangeStart);
+            endBadge.textContent = formatTime(rangeEnd);
+        }
+
+        function generateTicks() {
+            sliderTicks.innerHTML = '';
+            if (videoDuration <= 0) return;
+            const tickCount = Math.min(10, Math.floor(videoDuration));
+            for (let i = 0; i <= tickCount; i++) {
+                const t = (videoDuration / tickCount) * i;
+                const span = document.createElement('span');
+                span.textContent = formatTime(t);
+                sliderTicks.appendChild(span);
+            }
+        }
+
+        function percentToTime(percent) {
+            return Math.max(0, Math.min(videoDuration, (percent / 100) * videoDuration));
+        }
+
+        // seek 节流：避免拖动时请求过于密集
+        let seekTimer = null;
+        let lastSeekTime = -1;
+        function seekVideoTo(time, immediate) {
+            // 始终使用精确 seek，不用 fastSeek（fastSeek 只跳到关键帧，前半段精度差）
+            if (immediate) {
+                // 直接 seek，用于拖动过程中实时预览
+                video.currentTime = time;
+                lastSeekTime = time;
+                return;
+            }
+            // 非拖动状态（如点击轨道）使用防抖
+            if (seekTimer) clearTimeout(seekTimer);
+            seekTimer = setTimeout(() => {
+                video.currentTime = time;
+                lastSeekTime = time;
+                seekTimer = null;
+            }, 50);
+        }
+
+        // ===== 滑块拖动逻辑 =====
+        function getPointerPercent(e) {
+            const rect = sliderTrackWrapper.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+        }
+
+        function onPointerDown(e, which) {
+            e.preventDefault();
+            isDragging = which;
+            (which === 'start' ? thumbStart : thumbEnd).classList.add('active');
+
+            const percent = getPointerPercent(e);
+            const time = percentToTime(percent);
+
+            if (which === 'start') {
+                rangeStart = Math.min(time, rangeEnd - 0.1);
+            } else {
+                rangeEnd = Math.max(time, rangeStart + 0.1);
+            }
+
+            updateSliderUI();
+            seekVideoTo(which === 'start' ? rangeStart : rangeEnd, true);
+            triggerEstimate();
+        }
+
+        function onPointerMove(e) {
+            if (!isDragging) return;
+            e.preventDefault();
+
+            const percent = getPointerPercent(e);
+            const time = percentToTime(percent);
+
+            if (isDragging === 'start') {
+                rangeStart = Math.min(time, rangeEnd - 0.1);
+                rangeStart = Math.max(0, rangeStart);
+                seekVideoTo(rangeStart, true);
+            } else {
+                rangeEnd = Math.max(time, rangeStart + 0.1);
+                rangeEnd = Math.min(videoDuration, rangeEnd);
+                seekVideoTo(rangeEnd, true);
+            }
+
+            updateSliderUI();
+            triggerEstimate();
+        }
+
+        function onPointerUp() {
+            if (!isDragging) return;
+            (isDragging === 'start' ? thumbStart : thumbEnd).classList.remove('active');
+            isDragging = null;
+        }
+
+        // 鼠标事件
+        thumbStart.addEventListener('mousedown', (e) => onPointerDown(e, 'start'));
+        thumbEnd.addEventListener('mousedown', (e) => onPointerDown(e, 'end'));
+        document.addEventListener('mousemove', onPointerMove);
+        document.addEventListener('mouseup', onPointerUp);
+
+        // 触摸事件
+        thumbStart.addEventListener('touchstart', (e) => onPointerDown(e, 'start'), { passive: false });
+        thumbEnd.addEventListener('touchstart', (e) => onPointerDown(e, 'end'), { passive: false });
+        document.addEventListener('touchmove', onPointerMove, { passive: false });
+        document.addEventListener('touchend', onPointerUp);
+
+        // 点击轨道跳转
+        sliderTrackWrapper.addEventListener('click', (e) => {
+            if (e.target === thumbStart || e.target === thumbEnd) return;
+            const percent = getPointerPercent(e);
+            const time = percentToTime(percent);
+
+            // 判断离哪个滑块更近
+            const distToStart = Math.abs(time - rangeStart);
+            const distToEnd = Math.abs(time - rangeEnd);
+
+            if (distToStart <= distToEnd) {
+                rangeStart = Math.min(time, rangeEnd - 0.1);
+                rangeStart = Math.max(0, rangeStart);
+                seekVideoTo(rangeStart);
+            } else {
+                rangeEnd = Math.max(time, rangeStart + 0.1);
+                rangeEnd = Math.min(videoDuration, rangeEnd);
+                seekVideoTo(rangeEnd);
+            }
+
+            updateSliderUI();
+            triggerEstimate();
+        });
+
+        // ===== 高级设置面板：折叠/展开 =====
+        advancedSettingsHeader.addEventListener('click', () => {
+            const isOpen = advancedSettingsBody.classList.toggle('show');
+            advancedSettingsArrow.classList.toggle('open', isOpen);
+        });
+
+        // ===== 高级设置：按钮组逻辑 =====
+        function setupPillGroup(groupEl, settingKey) {
+            groupEl.addEventListener('click', (e) => {
+                const btn = e.target.closest('.pill-btn');
+                if (!btn) return;
+                // 取消所有选中
+                groupEl.querySelectorAll('.pill-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const val = btn.dataset.value;
+                settings[settingKey] = isNaN(val) ? val : parseFloat(val);
+                triggerEstimate();
+            });
+        }
+
+        setupPillGroup(qualityGroup, 'quality');
+        setupPillGroup(speedGroup, 'speed');
+
+        // 帧率下拉
+        fpsSelect.addEventListener('change', () => {
+            settings.fps = parseInt(fpsSelect.value);
+            triggerEstimate();
+        });
+
+        // 输出宽度下拉
+        widthSelect.addEventListener('change', () => {
+            const val = widthSelect.value;
+            settings.width = val === 'original' ? 'original' : parseInt(val);
+            triggerEstimate();
+        });
+
+        // 裁剪开关
+        cropToggle.addEventListener('change', () => {
+            settings.cropEnabled = cropToggle.checked;
+            cropInputs.style.opacity = cropToggle.checked ? '1' : '0.4';
+            cropInputs.style.pointerEvents = cropToggle.checked ? 'auto' : 'none';
+            triggerEstimate();
+        });
+
+        // 裁剪参数输入
+        [cropW, cropH, cropX, cropY].forEach(input => {
+            input.addEventListener('input', () => {
+                settings.cropW = parseInt(cropW.value) || 640;
+                settings.cropH = parseInt(cropH.value) || 360;
+                settings.cropX = parseInt(cropX.value) || 0;
+                settings.cropY = parseInt(cropY.value) || 0;
+            });
+        });
+
+        // 倒放开关
+        reverseToggle.addEventListener('change', () => {
+            settings.reverse = reverseToggle.checked;
+        });
+
+        // ===== 预估文件大小（防抖 500ms） =====
+        let estimateTimer = null;
+        function triggerEstimate() {
+            if (videoDuration <= 0) return;
+            if (estimateTimer) clearTimeout(estimateTimer);
+            estimateTimer = setTimeout(doEstimate, 500);
+        }
+
+        async function doEstimate() {
+            const duration = rangeEnd - rangeStart;
+            if (duration <= 0) return;
+
+            estimateInfo.classList.add('show');
+            estimateSize.textContent = '计算中...';
+
+            try {
+                const resp = await fetch(SERVER_URL + '/api/estimate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        duration: duration,
+                        width: settings.width,
+                        fps: settings.fps,
+                        quality: settings.quality
+                    })
+                });
+                if (!resp.ok) throw new Error('预估请求失败');
+                const data = await resp.json();
+                estimateSize.textContent = data.estimated_size_text || formatFileSize(data.estimated_size);
+            } catch (err) {
+                estimateSize.textContent = '无法预估';
+            }
+        }
+
+        // ===== 批量文件列表管理 =====
+        function renderFileList() {
+            if (selectedFiles.length === 0) {
+                fileListEl.classList.remove('show');
+                return;
+            }
+            fileListEl.classList.add('show');
+            fileCountEl.textContent = selectedFiles.length;
+            fileListItems.innerHTML = '';
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement('div');
+                item.className = 'file-list-item';
+                item.innerHTML = `
+                    <div class="file-list-item-info">
+                        <div class="file-list-item-name">${file.name}</div>
+                        <div class="file-list-item-size">${formatFileSize(file.size)}</div>
+                    </div>
+                    <button class="file-list-item-remove" data-index="${index}" title="删除">&times;</button>
+                `;
+                fileListItems.appendChild(item);
+            });
+
+            // 绑定删除按钮
+            fileListItems.querySelectorAll('.file-list-item-remove').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.index);
+                    removeFile(idx);
+                });
+            });
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+
+            if (selectedFiles.length === 0) {
+                // 没有文件了，重置界面
+                selectedFile = null;
+                fileInfo.classList.remove('show');
+                videoSection.classList.remove('show');
+                rangeSlider.classList.remove('show');
+                convertBtn.style.display = 'none';
+                estimateInfo.classList.remove('show');
+                result.classList.remove('show');
+                batchResults.classList.remove('show');
+                videoDuration = 0;
+            } else {
+                // 预览第一个文件
+                previewFirstFile();
+            }
+            renderFileList();
+        }
+
+        function previewFirstFile() {
+            if (selectedFiles.length === 0) return;
+            const file = selectedFiles[0];
+            selectedFile = file;
+            hideError();
+
+            // 显示文件信息
+            fileNameEl.textContent = file.name + (selectedFiles.length > 1 ? ` (共 ${selectedFiles.length} 个文件)` : '');
+            fileSizeEl.textContent = formatFileSize(file.size);
+            fileInfo.classList.add('show');
+
+            // 显示视频预览
+            const videoURL = URL.createObjectURL(file);
+            video.src = videoURL;
+            videoSection.classList.add('show');
+
+            // 视频元数据加载完成后初始化滑块
+            video.onloadedmetadata = () => {
+                videoDuration = video.duration;
+                rangeStart = 0;
+                rangeEnd = Math.min(5, videoDuration);
+
+                durationInfo.textContent = '视频总时长：' + formatTime(videoDuration);
+                generateTicks();
+                updateSliderUI();
+
+                // 显示范围选择器和转换按钮
+                rangeSlider.classList.add('show');
+                convertBtn.style.display = 'block';
+
+                // seek 到起始帧
+                video.currentTime = 0;
+
+                // 触发预估
+                triggerEstimate();
+            };
+        }
+
+        // ===== 上传区域事件 =====
+        uploadArea.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', handleFileSelect);
+
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('video/'));
+            if (files.length > 0) {
+                selectedFiles = files;
+                renderFileList();
+                previewFirstFile();
+            } else {
+                showError('请拖入视频文件！');
+            }
+        });
+
+        function handleFileSelect(e) {
+            const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'));
+            if (files.length > 0) {
+                selectedFiles = files;
+                renderFileList();
+                previewFirstFile();
+            }
+            // 重置 input 以便重复选择同一文件
+            fileInput.value = '';
+        }
+
+        // ===== 转换按钮事件 =====
+        convertBtn.addEventListener('click', async () => {
+            if (selectedFiles.length === 0) {
+                showError('请先选择视频文件！');
+                return;
+            }
+
+            if (rangeStart >= rangeEnd) {
+                showError('开始时间必须小于结束时间！');
+                return;
+            }
+
+            hideError();
+            convertBtn.disabled = true;
+            progressArea.classList.add('show');
+            result.classList.remove('show');
+            batchResults.classList.remove('show');
+
+            if (selectedFiles.length === 1) {
+                // 单文件转换
+                await convertSingleFile(selectedFiles[0]);
+            } else {
+                // 批量转换
+                await convertBatchFiles();
+            }
+
+            convertBtn.disabled = false;
+            progressArea.classList.remove('show');
+
+            // 转换完成后刷新历史记录
+            loadHistory();
+        });
+
+        // 单文件转换
+        async function convertSingleFile(file) {
+            progressText.textContent = '正在转换...';
+
+            try {
+                // 1. 上传视频文件
+                const uploadFormData = new FormData();
+                uploadFormData.append('video', file);
+
+                const uploadResponse = await fetch(SERVER_URL + '/upload', {
+                    method: 'POST',
+                    body: uploadFormData
+                });
+
+                if (!uploadResponse.ok) {
+                    throw new Error('视频上传失败');
+                }
+
+                const uploadData = await uploadResponse.json();
+                uploadedFilename = uploadData.filename;
+
+                // 2. 调用转换接口
+                const convertResponse = await fetch(SERVER_URL + '/api/convert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        filename: uploadedFilename,
+                        start: rangeStart.toFixed(1),
+                        end: rangeEnd.toFixed(1),
+                        quality: settings.quality,
+                        fps: settings.fps,
+                        width: settings.width,
+                        speed: settings.speed,
+                        crop: settings.cropEnabled ? `${settings.cropW}:${settings.cropH}:${settings.cropX}:${settings.cropY}` : '',
+                        reverse: settings.reverse
+                    })
+                });
+
+                if (!convertResponse.ok) {
+                    throw new Error('GIF 转换失败');
+                }
+
+                const convertData = await convertResponse.json();
+
+                // 3. 显示结果
+                gifPreview.src = SERVER_URL + '/output/' + convertData.gif;
+                downloadLink.href = SERVER_URL + '/output/' + convertData.gif;
+                downloadLink.download = convertData.gif;
+                result.classList.add('show');
+
+            } catch (error) {
+                console.error('Error:', error);
+                showError('转换失败：' + error.message);
+            }
+        }
+
+        // 批量转换
+        async function convertBatchFiles() {
+            const total = selectedFiles.length;
+            const results = [];
+
+            for (let i = 0; i < total; i++) {
+                const file = selectedFiles[i];
+                progressText.textContent = `正在转换 ${i + 1}/${total}: ${file.name}`;
+
+                try {
+                    // 1. 上传视频文件
+                    const uploadFormData = new FormData();
+                    uploadFormData.append('video', file);
+
+                    const uploadResponse = await fetch(SERVER_URL + '/upload', {
+                        method: 'POST',
+                        body: uploadFormData
+                    });
+
+                    if (!uploadResponse.ok) {
+                        results.push({ file: file.name, error: '上传失败' });
+                        continue;
+                    }
+
+                    const uploadData = await uploadResponse.json();
+                    uploadedFilename = uploadData.filename;
+
+                    // 2. 调用转换接口
+                    const convertResponse = await fetch(SERVER_URL + '/api/convert', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            filename: uploadedFilename,
+                            start: rangeStart.toFixed(1),
+                            end: rangeEnd.toFixed(1),
+                            quality: settings.quality,
+                            fps: settings.fps,
+                            width: settings.width,
+                            speed: settings.speed,
+                            crop: settings.cropEnabled ? `${settings.cropW}:${settings.cropH}:${settings.cropX}:${settings.cropY}` : '',
+                            reverse: settings.reverse
+                        })
+                    });
+
+                    if (!convertResponse.ok) {
+                        results.push({ file: file.name, error: '转换失败' });
+                        continue;
+                    }
+
+                    const convertData = await convertResponse.json();
+                    results.push({ file: file.name, gif: convertData.gif, success: true });
+
+                } catch (error) {
+                    results.push({ file: file.name, error: error.message });
+                }
+            }
+
+            // 显示批量结果
+            batchResultsList.innerHTML = '';
+            results.forEach(r => {
+                const item = document.createElement('div');
+                item.className = 'batch-result-item';
+                if (r.success) {
+                    item.innerHTML = `
+                        <div class="result-filename">${r.file}</div>
+                        <img src="${SERVER_URL}/output/${r.gif}" alt="生成的 GIF">
+                        <a href="${SERVER_URL}/output/${r.gif}" class="download-btn" download="${r.gif}">下载 GIF</a>
+                    `;
+                } else {
+                    item.innerHTML = `
+                        <div class="result-filename" style="color: #e53935;">${r.file} - 转换失败: ${r.error}</div>
+                    `;
+                }
+                batchResultsList.appendChild(item);
+            });
+            batchResults.classList.add('show');
+        }
+
+        // ===== 历史记录 =====
+        async function loadHistory() {
+            try {
+                const resp = await fetch(SERVER_URL + '/api/history');
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                if (!data || data.length === 0) {
+                    historyGrid.innerHTML = '<div class="history-empty">暂无历史记录</div>';
+                    return;
+                }
+
+                historyGrid.innerHTML = '';
+                data.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'history-card';
+                    card.innerHTML = `
+                        <img class="history-card-img" src="${SERVER_URL}/output/${item.filename}" alt="${item.filename}" onerror="this.style.display='none'">
+                        <div class="history-card-body">
+                            <div class="history-card-name" title="${item.filename}">${item.filename}</div>
+                            <div class="history-card-meta">
+                                <span>${item.size ? formatFileSize(item.size) : ''}</span>
+                                <span>${item.time || ''}</span>
+                            </div>
+                            <div class="history-card-actions">
+                                <a href="${SERVER_URL}/output/${item.filename}" class="history-download-btn" download="${item.filename}" target="_blank">下载</a>
+                                <button class="history-delete-btn" data-filename="${item.filename}">删除</button>
+                            </div>
+                        </div>
+                    `;
+                    historyGrid.appendChild(card);
+                });
+
+                // 绑定删除按钮
+                historyGrid.querySelectorAll('.history-delete-btn').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const filename = btn.dataset.filename;
+                        try {
+                            const delResp = await fetch(SERVER_URL + '/api/history', {
+                                method: 'DELETE',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ filename: filename })
+                            });
+                            if (delResp.ok) {
+                                // 删除后刷新列表
+                                loadHistory();
+                            }
+                        } catch (err) {
+                            console.error('删除历史记录失败:', err);
+                        }
+                    });
+                });
+
+            } catch (err) {
+                console.error('加载历史记录失败:', err);
+            }
+        }
+
+        // 页面加载时获取历史记录
+        loadHistory();
+    </script>
+</body>
+</html>
